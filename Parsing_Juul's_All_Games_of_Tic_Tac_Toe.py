@@ -11,7 +11,7 @@ totals = {'Noughts 5': 0, 'Crosses 5': 0, 'Draw 5': 0,
           'Noughts 9': 0, 'Crosses 9': 0, 'Draw 9': 0,
           'Noughts ': 0, 'Crosses ': 0, 'Draw ': 0, 'total ': 0, }  # To confirm with Juul Numbers
 counting = False
-filename = 'All games of Tic Tac Toe.txt'
+filename = 'All_games_of_Tic_Tac_Toe.txt'
 with open(filename) as fp:
     for num, line in enumerate(fp):
         if 'Noughts' in line:

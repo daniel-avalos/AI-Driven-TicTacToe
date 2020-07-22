@@ -1,23 +1,42 @@
 # Tic Tac Toe
 # The Table, The Players, and The Ref
 
-# To Do:
-# # Gigantic technical report
-# # Recursive overhaul (still reliant on immediate win-check)
-# # General cleanup/polish
+# todo Recursive overhaul (still reliant on immediate win-check)
+# todo touchups, see sub todo's
+# todo General cleanup/polish
 
 
 from random import choice
+from time import sleep
+from typing import * # todo type hints
 
 
 class TheTable:          
     """The Table, central storage for all game elements and static
     functions for player/ref use
     Fully managed by The Referee"""
+    # todo table will eventually have non-static functions. rewrite
 
     the_board = {}
     valid_moves = []
     tokens = ['X', 'O']
+    next_token = None
+    # todo at current, next player is tokens[0], with list flipped after each turn.
+    # todo create stand alone
+
+    def set_table(self):
+        """Prepare table for new game, clearing out old entries and preparing new board"""
+        # todo test, prepare to work with global table obj
+        self.the_board = {}
+        self.valid_moves = []
+        tokens = ['X', 'O']
+        for y in range(1, 10):
+            TheTable.the_board[y] = ' '
+            TheTable.valid_moves.append(y)
+
+    def place_token(self):
+        # todo
+        """No validity check, places token on and flips var next_token"""
 
     @staticmethod
     def draw_board():
@@ -49,9 +68,18 @@ class Player:
     """TheRef calls appropriate player's main() to return final_move
     Each player determines move in unique methods"""
 
-    def main(self):
+    def __init__(self, ):
+        self.final_move = None
+        self.name = None
+
+    def calculate(self):
+        """Player specific function, where player subclass decides next move"""
         print("Called Player is not implemented. Exiting...")
         exit(1)
+
+    def main(self):
+        self.calculate()
+
 # -------------------------------------------------------------------------------------------------------
 
 
@@ -59,8 +87,8 @@ class Human(Player):
     """Human Prompt for Tic-Tac-Toe.
     Draws board, quick input validation"""
 
-    def __init__(self, final_move=None):
-        self.final_move = final_move
+    def __init__(self, ):
+        super().__init__()
 
     def get_prompt(self, prompt=None):
         TheTable.draw_board()
@@ -112,7 +140,7 @@ class AiLevi(Player):
         
     def main(self):
         self.levi()
-        return final_move
+        return self.final_move
 
 
 class AiRalph(Player):
@@ -195,22 +223,30 @@ class TheRef(object):
     game_over   checks for term states (wins, ties)
     play_again  displays results, offers to repeat game
     """
+    # todo the ref contains board logic and operations. Move to board, allow ref to create global class and
 
-    def __init__(self, get_from=None, next_move=None, results=None, repeating=True,
-                 no_human=False):
-        self.get_from = get_from        # 'X': {player_function}, 'O': {player_function}
-        self.next_move = next_move      # player sourced move, queued for board write
-        self.results = results          # Game over string
-        self.repeating = repeating      # Repeats game, set by play_again()
-        self.no_human = no_human
+    def __init__(self):
+        self.get_from = None
+        """" 'X': {player_object}, 'O': {player_object} """
+        self.next_move = None
+        """" player sourced move, queued for board write """
+        self.results = None
+        """ Game over string """
+        self.repeating = True
+        """ Repeats game, set by play_again() """
+        self.no_human = False
+        """ Flag set if no human player detected"""
 
     def the_setup(self):
+        # todo move to Table
         # Set the table
         TheTable.the_board = {}
         TheTable.valid_moves = []
         for y in range(1, 10):
             TheTable.the_board[y] = ' '
             TheTable.valid_moves.append(y)
+
+        # todo this might be ok. Ref should keep player calls. Move to own func
         # Assign player calls
         self.get_from = {'X': ' ', 'O': ' '}
         assignments = (Human, AiRando, AiLevi, AiRalph)
@@ -220,6 +256,8 @@ class TheRef(object):
             while prompt not in '0 1 2 3'.split():
                 prompt = input("> ")
             self.get_from[char] = assignments[int(prompt)]()
+
+        # todo check spectate flag, rename no_human -> spectating
         # To spectate
         self.no_human = 'Human' not in str(self.get_from)
         # Random starting players
@@ -227,8 +265,10 @@ class TheRef(object):
             TheTable.tokens = TheTable.tokens[::-1]
 
     def spectate(self, last_player):
+        # todo consider specate line move to a part of "who's turn next"
         print(last_player, 'played', self.next_move)
         TheTable.draw_board()
+        # sleep(1)
         input()
         '''if 'Human' not in str(self.get_from):
             print(last_player, 'played', self.next_move)
@@ -242,6 +282,7 @@ class TheRef(object):
             4) Clears the move from valid list
             5) Opt spectator mode
             6) Flips tokens (remember, first token is always next player)"""
+        # todo these need to be separate functions!
         next_player = TheTable.tokens[0]
         self.next_move = self.get_from[next_player].main()
         TheTable.the_board[self.next_move] = next_player
@@ -251,7 +292,9 @@ class TheRef(object):
         TheTable.tokens = TheTable.tokens[::-1]
 
     def game_over(self):
-        def game_won():  # Tokens already flipped. checks if prev player won game
+        # todo consider properties in TheTable
+        #  todo (table knows if game is over, or won, but ref acts on it)
+        def game_won():  # Tokens already flipped. checks if prev player won
             won = TheTable.is_won(TheTable.the_board, TheTable.tokens[1])
             if won:
                 self.results = f"{TheTable.tokens[1]} wins"
@@ -268,9 +311,11 @@ class TheRef(object):
         print(self.results)
         while prompt not in '0 1'.split():
             prompt = input("\n(0) Quit \n(1) Play again \n> ")
-        self.repeating = prompt is '1'
+        self.repeating = prompt == '1'
 
     def main(self):
+        # todo good running loop. Consider moving play game features
+        #  to separate functions, and calling in main loop
         while self.repeating:
             self.the_setup()
             while not self.game_over():
