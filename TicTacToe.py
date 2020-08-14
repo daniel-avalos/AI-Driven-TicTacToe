@@ -505,9 +505,6 @@ class TheRef(object):
 
         return won or tied
 
-    def scoreboard(self):
-        print(self.results)
-
     def main(self):
         # todo good running loop. Consider moving play game features
         #  to separate functions, and calling in main loop
