@@ -9,6 +9,7 @@
 from random import choice
 from time import sleep
 from typing import *  # todo type hints
+from itermark import Itermark as im
 
 
 class TheTable:
@@ -25,16 +26,22 @@ class TheTable:
         self.valid_moves: List[int] = []
         """All currently valid moves"""
 
-        self.tokens_dict: Dict[int, str] = {
+        """self.tokens_dict: Dict[int, str] = {
             0: 'X',
             1: 'O',
             # 2: 'T'
-        }
-        """Tokens dict used for tracking next player"""
+        }"""
+        self.tokens_dict = im({
+            0: 'X',
+            1: 'O',
+            # 2: 'T'
+        })
+        """Tokens itermarkdict used for tracking next player"""
         # Separate dict used fof tracking who's next, without having to search
         #  through the tuple each time
 
-        self.tokens = tuple([x for x in self.tokens_dict.values()])
+        # self.tokens = tuple([x for x in self.tokens_dict.values()])
+        self.tokens = tuple(self.tokens_dict.values())
         self._build_table()
         # build board, create valid move set
 
@@ -251,21 +258,15 @@ class AiRalph(Character):
 
     char_type = 'AiRalph'
 
-    def __init__(self, scores=None, players=None, clone_board=None,
-                 final_move=None):
-        super().__init__()
-        self.scores = scores
-        self.players = players
-        self.clone_board = clone_board
-        self.final_move = final_move
-
-
-    def prepare(self):
+    def __init__(self, table, token):
+        super().__init__(table, token)
         self.scores = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
         # self.scores = {1: (0, 0), 2: (0, 0), 3: (0, 0), 4: (0, 0), 5: (0, 0),
         # 6: (0, 0), 7: (0, 0), 8: (0, 0), 9: (0, 0)}
-        self.players = self.table.tokens.copy()
-        self.clone_board = self.table.the_board.copy()
+        self.players = self.table.tokens
+        self.clone_board = table.the_board.copy()
+        self.final_move = 0
+
 
     def win_check(self):
         for token in self.players:
@@ -324,7 +325,7 @@ class TheCharacters:
         # tokens needs to be accessable before init
 
         self.table_playing = table_playing
-        """Pointer to table in play. AI needs to 'see' table for their own 
+        """Pointer to table in play. AIs need to 'see' table for their own 
         calculations """
 
         self.characters: Dict[int, Type[Character]] = {
@@ -336,12 +337,13 @@ class TheCharacters:
         """dict of available players, to assign into call_player values"""
 
         # todo random choice to determine who goes first?
+        #  choice(self.table_playing.tokens_dict._mark_range)
         # self._token_index_next: int = choice(self.characters.keys())
-        self._token_next_index: int = 0
-        """Tracks which player is up next"""
+        # self._token_next_index: int = 0
+        # """Tracks which player is up next"""
 
-        self._token_deck_index: int = self._get_token_deck_index()
-        """Tracks player is on deck after next player"""
+        # self._token_deck_index: int = self._get_token_deck_index()
+        # """Tracks player is on deck after next player"""
         # todo at current, next player is tokens[0], with list flipped after
         #  each turn.
         # todo create stand alone ***Done
@@ -352,24 +354,36 @@ class TheCharacters:
 
     @property
     def token_next(self) -> str:
-        """Token of next player to make move"""
+        """Get next token queued up, while cycling itermarkdict mark to next
+        token, looping back when end reached"""
+        return self.table_playing.tokens_dict.activeval
+
+    def _set_token_next(self):
+        try:
+            self.table_playing.tokens_dict.mark += 1
+        except IndexError:
+            self.table_playing.tokens_dict.mark = 1
+
+    """@property
+    def token_next(self) -> str:
+        # Token of next player to make move
         return self.table_playing.tokens_dict[self._token_next_index]
 
     @property
     def _token_deck(self) -> str:
-        """Token of who plays AFTER next player. Used to track player
-        queue, especially in <2 player games"""
+        # Token of who plays AFTER next player. Used to track player
+        queue, especially in <2 player games
         return self.table_playing.tokens_dict[self._token_deck_index]
 
     def _set_tokens_next_deck(self):
-        """After player has made their move, cycle next players"""
+        # After player has made their move, cycle next players
         token_deck_index_new = self._get_token_deck_index()
         self._token_next_index = self._token_deck_index
         self._token_deck_index = token_deck_index_new
 
     # todo explore next()
     def _get_token_deck_index(self) -> int:
-        """Attempts to self._token_next_index + 1. If OOB, 0"""
+        # Attempts to self._token_next_index + 1. If OOB, 0
         try:
             attempt_deck_index = self._token_deck_index + 1
             if self.table_playing.tokens_dict[attempt_deck_index]:
@@ -378,7 +392,7 @@ class TheCharacters:
             return 0
         except AttributeError:
             # New Game, deck is 1
-            return 1
+            return 1 """
 
     def _get_new_characters(self):
         """Runs on Init, prompts human user to assign character to Tokens
@@ -413,7 +427,8 @@ class TheCharacters:
         """Gets move from next queued player, moves through queue"""
         # todo migrate get_move(?) from Ref
         next_move = self.call_char[self.token_next].prompt_next_move()
-        self._set_tokens_next_deck()
+        self._set_token_next()
+        # self._set_tokens_next_deck()
         return next_move
 
 
@@ -456,7 +471,7 @@ class TheRef(object):
 
     @property
     def get_next_player(self):
-        """Get next player to make a move. Referenced from TheCharacters"""
+        """Check next player queued to make a move"""
         return self.characters_playing.token_next
 
     @property
